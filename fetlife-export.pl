@@ -72,7 +72,7 @@ sub getPost {
 }
 
 sub downloadPics {
-  mkdir "$dir/fetlife/pics";
+  mkdir "$dir/fetlife/pictures";
 
   print "Loading pictures: .";
   $mech->get("https://fetlife.com/users/$id/pictures");
@@ -104,11 +104,11 @@ sub getImage {
   my $image = $mech->find_image( url_regex => qr{flpics.*_720\.jpg} );
   my $name = basename($image->url());
   return if -f "$dir/fetlife/pics/$name.data";
-  getstore($image->url(), "$dir/fetlife/pics/$name");
+  getstore($image->url(), "$dir/fetlife/pictures/$name");
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
-  open(DATA, "> $dir/fetlife/pics/$name.data") or die "Can't write $name.data: $!";
+  open(DATA, "> $dir/fetlife/pictures/$name.data") or die "Can't write $name.data: $!";
   print DATA "Caption: ";
   my $caption = $tree->look_down( class => "caption" );
   if ($caption) {
