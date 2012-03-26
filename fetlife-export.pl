@@ -103,7 +103,6 @@ sub getImage {
   $mech->get($page);
   my $image = $mech->find_image( url_regex => qr{flpics.*_720\.jpg} );
   my $name = basename($image->url());
-  return if -f "$dir/fetlife/pics/$name.data";
   getstore($image->url(), "$dir/fetlife/pictures/$name");
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
