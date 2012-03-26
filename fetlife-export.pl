@@ -43,7 +43,7 @@ sub downloadWriting {
   my $num = @links;
   my $s = &s($num);
   my $i = 1;
-  print " $num posts$s found.\n";
+  print " $num post$s found.\n";
   return unless $num;
   foreach my $page (@links) {
     print "$i/$num\r";
