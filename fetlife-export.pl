@@ -63,25 +63,9 @@ sub getPost {
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
   my $name = basename($page->url());
-  ### return if -f "$dir/fetlife/posts/$name.data";
-  open(DATA, "> $dir/fetlife/posts/$name.txt") or die "Can't write $name.txt: $!";
-  print DATA $tree->look_down( class => 'h2 bottom' )->as_HTML(), "\n\n";
-  foreach my $p ($tree->look_down( class => 'content mls60 may_contain_youtubes' )->look_down(_tag => "p")) {
-    print DATA $p->as_HTML(), "\n\n";
-  }
-
-  print DATA "\n\nComments:\n";
-
-  my @comments = $tree->look_down( class => 'comment clearfix' );
-  pop @comments; # ignore the new comment line
-  # print "comments: ", scalar @comments, "\n";
-  foreach my $comment (@comments) {
-    # print "-----\n", $comment->dump();
-    print DATA $comment->look_down( class => 'nickname' )->as_HTML();
-    print DATA " - ", $comment->look_down( class => "time_ago" )->attr('datetime'), "\n";
-    print DATA $comment->look_down( class => qr/content/ )->as_HTML();
-    print DATA "\n\n";
-  }
+  open(DATA, "> $dir/fetlife/posts/$name.html") or die "Can't write $name.html: $!";
+  print DATA $tree->look_down( id => 'post_content' )->as_HTML(undef, "\t", {}), "\n\n";
+  print DATA $tree->look_down( id => 'comments' )->as_HTML(undef, "\t", {}), "\n\n";
 
   close DATA;
   $tree->delete();
