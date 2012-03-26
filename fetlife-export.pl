@@ -26,8 +26,69 @@ mkpath("$dir/fetlife");
 my $id = &getId();
 print "userID: $id\n";
 
+&downloadProfile();
+&downloadConversations();
 &downloadPics();
 &downloadWriting();
+
+sub downloadProfile {
+  print "Loading profile: .", "\n";
+  $mech->get("https://fetlife.com/users/$id");
+  my $tree;
+  $tree = HTML::TreeBuilder->new();
+  $tree->ignore_unknown(0);
+  $tree->parse($mech->content());
+
+  open(DATA, "> $dir/fetlife/$id.html") or die "Can't write $id.html: $!";
+  print DATA $tree->look_down( id => 'profile' )->as_HTML(undef, "\t", {}), "\n\n";
+
+  close DATA;
+  $tree->delete();
+}
+
+sub downloadConversations {
+  mkdir "$dir/fetlife/conversations";
+
+  print "Loading conversations: .";
+  $mech->get("https://fetlife.com/conversations/all");
+  my @links = $mech->find_all_links( url_regex => qr{/conversations/\d+} );
+  while (my $next = $mech->find_link( url_regex => qr{/conversations/all\?page=(\d)}, text_regex => qr/Next/ )) {
+      print ".";
+      $mech->get($next);
+      push @links, $mech->find_all_links( url_regex => qr{/conversations/\d+} );
+  }
+
+  my $num = @links;
+  my $s = &s($num);
+  my $i = 1;
+  print " $num conversation$s found.\n";
+  return unless $num;
+  foreach my $page (@links) {
+    print "$i/$num\r";
+
+    &getMessages($page);
+
+    $i++;
+  }
+}
+
+sub getMessages {
+  my $page = shift;
+  my $tree;
+  $mech->get($page);
+  $tree = HTML::TreeBuilder->new();
+  $tree->ignore_unknown(0);
+  $tree->parse($mech->content());
+  my $x = basename($page->url());
+  my @y = split(/#/, $x);
+  my $name = $y[0];
+
+  open(DATA, "> $dir/fetlife/conversations/$name.html") or die "Can't write $name.html";
+  print DATA $tree->look_down( id => 'messages' )->as_HTML(undef, "\t", {}), "\n\n";
+
+  close DATA;
+  $tree->delete();
+}
 
 sub downloadWriting {
   mkdir "$dir/fetlife/posts";
