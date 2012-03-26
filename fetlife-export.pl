@@ -108,27 +108,13 @@ sub getImage {
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
-  open(DATA, "> $dir/fetlife/pictures/$name.data") or die "Can't write $name.data: $!";
-  print DATA "Caption: ";
-  my $caption = $tree->look_down( class => "caption" );
-  if ($caption) {
-    print DATA $caption->as_HTML;
-  } else {
-    print DATA "N/A";
-  }
+  open(DATA, "> $dir/fetlife/pictures/$name.html") or die "Can't write $name.html: $!";
+  my $picture = $tree->look_down( id => "picture" );
+  my $pic_img = $picture->find_by_tag_name( 'img' );
+  $pic_img    = \$pic_img->attr( 'src', $name );
 
-  print DATA "\n\nComments:\n";
-
-  my @comments = $tree->look_down( class => 'comment clearfix' );
-  pop @comments; # ignore the new comment line
-  # print "comments: ", scalar @comments, "\n";
-  foreach my $comment (@comments) {
-    # print "-----\n", $comment->dump();
-    print DATA $comment->look_down( class => 'nickname' )->as_HTML();
-    print DATA " - ", $comment->look_down( class => "time_ago" )->attr('datetime'), "\n";
-    print DATA $comment->look_down( class => qr/content/ )->as_HTML();
-    print DATA "\n\n";
-  }
+  print DATA $picture->as_HTML(undef, "\t", {}), "\n\n";
+  print DATA $tree->look_down( id => "comments" )->as_HTML(undef, "\t", {}), "\n\n";
 
   close DATA;
   $tree->delete();
