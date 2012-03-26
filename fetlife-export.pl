@@ -5,6 +5,7 @@ use WWW::Mechanize;
 use Term::ReadKey;
 use LWP::Simple qw/getstore/;
 use File::Basename;
+use File::Path;
 use HTML::TreeBuilder;
 
 $|++;
@@ -19,7 +20,7 @@ ReadMode('normal');
 chomp $password;
 print "\n";
 
-mkdir "$dir/fetlife";
+mkpath("$dir/fetlife");
 
 &login($username, $password);
 my $id = &getId();
