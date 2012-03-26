@@ -34,7 +34,8 @@ sub downloadWriting {
 
   print "Loading posts: .";
   $mech->get("https://fetlife.com/users/$id/posts");
-  my @links = $mech->find_all_links( url_regex => qr{/users/$id/posts/\d+$} );
+  # Use FQURI in `find_all_links()` to avoid duplicate destinations in @links.
+  my @links = $mech->find_all_links( url_regex => qr{https://fetlife.com/users/$id/posts/\d+$} );
   while (my $next = $mech->find_link( url_regex => qr{/posts\?page=(\d)}, text_regex => qr/Next/ )) {
     print ".";
     $mech->get($next);
