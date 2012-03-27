@@ -7,6 +7,8 @@ use LWP::Simple qw/getstore/;
 use File::Basename;
 use File::Path;
 use HTML::TreeBuilder;
+use String::Escape;
+use Unicode::Escape;
 
 $|++;
 
@@ -27,6 +29,7 @@ my $id = &getId();
 print "userID: $id\n";
 
 &downloadProfile();
+&downloadStatuses();
 &downloadConversations();
 &downloadPics();
 &downloadWriting();
@@ -85,6 +88,87 @@ sub getMessages {
 
   open(DATA, "> $dir/fetlife/conversations/$name.html") or die "Can't write $name.html";
   print DATA $tree->look_down( id => 'messages' )->as_HTML(undef, "\t", {}), "\n\n";
+
+  close DATA;
+  $tree->delete();
+}
+
+sub downloadStatuses {
+  mkdir "$dir/fetlife/statuses";
+
+  print "Loading statuses: .";
+  $mech->get("https://fetlife.com/users/$id/activity");
+  my @links = $mech->find_all_links( url_regex => qr{https://fetlife.com/users/$id/statuses/\d+$} );
+  while (my $next = $mech->find_link( url_regex => qr{/users/$id/activity/more\?page}, text_regex => qr/view more/ )) {
+    print ".";
+    $mech->get($next);
+
+    #### FetLife returns straight-up jQuery, so clean this out before parsing.
+    #### TODO: Can we refactor this? It feels kludgy.
+    # Split into lines.
+    my @x = split("\n", $mech->content);
+
+    # Ignore the first line.
+
+    # Clean the second line.
+    ## Extract the JavaScript and Unicode-encoded text from the jQuery commands.
+    ### Cut out the first 24 characters, which are always: `$("#mini_feed").append("`
+    my $x1 = substr($x[1], 24);
+    ### Cut out the last 3 characters, which are always: `");`
+    $x1 = substr($x1, 0, -3);
+    ### Decode the Unicode.
+    $x1 = Unicode::Escape::unescape($x1, 'UTF-8');
+    ### Convert literal '\n' into newlines.
+    ### Strip all slashes to stop escaping '"' chracters.
+    $x1 = String::Escape::unbackslash($x1);
+
+    # Clean the third line.
+    ## Extract the JavaScript text from the jQuery commands.
+    ### Cut out the first 23 characters, which are always: `$("#mini_feed").after("`
+    my $x2 = substr($x[2], 23);
+    ### Cut out the last 3 characters, which are always: `");`
+    $x2 = substr($x2, 0, -3);
+    ### Convert literal '\n' into newlines.
+    ### Strip all slashes to stop escaping '"' chracters.
+    $x2 = String::Escape::unbackslash($x2);
+
+    # Concatenate the cleaned-up lines together.
+    my $html = Encode::decode_utf8($x1 . $x2);
+    # Tell WWW::Mechanize to use the new HTML content.
+    $mech->update_html($html);
+
+    push @links, $mech->find_all_links( url_regex => qr{https://fetlife.com/users/$id/statuses/\d+$} );
+  }
+
+  my $num = @links;
+  my $s = &s($num, 1);
+  my $i = 1;
+  print " $num status$s found.\n";
+  return unless $num;
+  foreach my $page (@links) {
+    print "$i/$num\r";
+
+    &getStatus($page);
+
+    $i++;
+  }
+}
+
+sub getStatus {
+  my $page = shift;
+  my $tree;
+  $mech->get($page);
+  $tree = HTML::TreeBuilder->new();
+  $tree->ignore_unknown(0);
+  $tree->parse($mech->content());
+  my $name = basename($page->url());
+
+  #### TODO: Strip out all the nonsense HTML we don't want. This includes:
+  #            * The 'style="display:none;"' in comments on statuses.
+  #            * The new comment list item.
+
+  open(DATA, "> $dir/fetlife/statuses/$name.html") or die "Can't write $name.html";
+  print DATA $tree->look_down( id => "status_$name" )->as_HTML(undef, "\t", {}), "\n\n";
 
   close DATA;
   $tree->delete();
@@ -209,5 +293,7 @@ sub usage {
 
 sub s {
   my $num = shift;
-  return $num == 1 ? "" : "s";
+  my $alt = shift;
+  unless ($alt) { return $num == 1 ? "" : "s"; }
+  else { return $num == 1 ? "" : "es"; }
 }
