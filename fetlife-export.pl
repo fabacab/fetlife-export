@@ -316,7 +316,11 @@ sub getImage {
   $mech->get($page);
   my $image = $mech->find_image( url_regex => qr{flpics.*_720\.jpg} );
   my $name = basename($image->url());
-  getstore($image->url(), "$dir/fetlife/pictures/$name");
+  # Don't download images we've already grabbed.
+  # TODO: Extend this so we don't download pages/threads we've already grabbed, either.
+  unless ( -f "$dir/fetlife/pictures/$name" ) {
+    getstore($image->url(), "$dir/fetlife/pictures/$name");
+  }
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
