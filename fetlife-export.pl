@@ -92,6 +92,9 @@ sub getMessages {
   $tree->delete();
 }
 
+# TODO: This downloads only a given user's wall. However, due to the nature
+#       of the way wall messaging works, we need to download the others user's
+#       walls to get the other half of the conversation, too.
 sub downloadWall {
   print "Loading wall: .";
   $mech->get("https://fetlife.com/users/$id/wall_posts");
