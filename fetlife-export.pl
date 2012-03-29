@@ -195,7 +195,10 @@ sub downloadStatuses ($$) {
   foreach my $page (@links) {
     print "$i/$num\r";
 
-    &getStatus($page);
+    my $name = basename($page->url());
+    unless ( -f "$dir/fetlife/statuses/$name.html" ) {
+      &getStatus($page);
+    }
 
     $i++;
   }
@@ -234,7 +237,10 @@ sub downloadGroupPosts ($$) {
     print "$i/$num\r";
 
     # TODO: This only grabs the first page--a "post"--but should grab the whole thread.
-    &getGroupPost($page);
+    my $name = basename($page->url());
+    unless ( -f "$dir/fetlife/group_posts/$name.html" ) {
+      &getGroupPost($page);
+    }
 
     $i++;
   }
@@ -271,7 +277,10 @@ sub downloadWritings ($$) {
   foreach my $page (@links) {
     print "$i/$num\r";
 
-    &getPost($page);
+    my $name = basename($page->url());
+    unless ( -f "$dir/fetlife/posts/$name.html" ) {
+      &getPost($page);
+    }
 
     $i++;
   }
