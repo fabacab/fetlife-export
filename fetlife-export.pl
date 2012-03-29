@@ -210,15 +210,20 @@ sub downloadStatuses ($$) {
 sub getStatus {
   my $page = shift;
   my $tree;
+  my $name = basename($page->url());
+
   $mech->get($page);
+
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
-  my $name = basename($page->url());
 
-  #### TODO: Strip out all the nonsense HTML we don't want. This includes:
-  #            * The 'style="display:none;"' in comments on statuses.
-  #            * The new comment list item.
+  # Strip out problematic HTML.
+  my @comments = $tree->look_down( class => qr/status_comment/ );
+  foreach my $comment (@comments) {
+    $comment->attr( 'style', undef );
+  }
+  $tree->look_down( class => qr/new_comment/ )->delete();
 
   open(DATA, "> $dir/fetlife/statuses/$name.html") or die "Can't write $name.html";
   print DATA $tree->look_down( id => "status_$name" )->as_HTML(undef, "\t", {}), "\n\n";
