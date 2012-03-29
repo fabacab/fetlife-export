@@ -242,30 +242,48 @@ sub downloadGroupPosts ($$) {
     # TODO: This only grabs the first page--a "post"--but should grab the whole thread.
     my $name = basename($page->url());
     unless ( -f "$dir/fetlife/group_posts/$name.html" ) {
-      &getGroupPost($page);
+      &getGroupThread($page);
     }
 
     $i++;
   }
 }
 
-sub getGroupPost {
+sub getGroupThread {
   my $page = shift;
   my $tree;
+  my $name = basename($page->url());
+
+  # Grab the first page of the group thread.
   $mech->get($page);
+
+  # Download the first page.
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
-  my $name = basename($page->url());
 
-  # TODO: If this thread has more than one page of comments, we should grab those, too.
+  # TODO: Edit HTML so `#comments` ID isn't repeated and pagination links are intra-page.
 
   open(DATA, "> $dir/fetlife/group_posts/$name.html") or die "Can't write $name.html";
   print DATA $tree->look_down( class => qr{group_post} )->as_HTML(undef, "\t", {}), "\n\n";
   print DATA $tree->look_down( id => 'comments' )->as_HTML(undef, "\t", {}), "\n\n";
 
-  close DATA;
   $tree->delete();
+
+  # Also download comments on next pages.
+  while (my $next = $mech->find_link( url_regex => qr{groups/\d+/group_posts/\d+\?page}, text_regex => qr/^Next/ )) {
+    $mech->get($next);
+
+    $tree = HTML::TreeBuilder->new();
+    $tree->ignore_unknown(0);
+    $tree->parse($mech->content());
+
+    print DATA $tree->look_down( id => 'comments' )->as_HTML(undef, "\t", {}), "\n\n";
+
+    $tree->delete();
+  }
+
+  close DATA;
 }
 
 sub downloadWritings ($$) {
