@@ -29,9 +29,8 @@ print "userID: $id\n";
 mkpath("$dir/fetlife");
 
 &downloadProfile();
-&collectLinksInActivityFeed();
 &downloadConversations();
-&downloadWriting();
+&collectLinksInActivityFeed();
 
 sub downloadProfile {
   print "Loading profile: .", "\n";
@@ -103,6 +102,7 @@ sub collectLinksInActivityFeed {
   # Only links to one's own statuses are FQURIs, so use absolute (server-relative) URI.
   my @statuses    = $mech->find_all_links( url_regex => qr{/users/\d+/statuses/\d+$} );
   my @pictures    = $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/pictures/\d+$} );
+  my @writings    = $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/posts/\d+$} );
   my @group_posts = $mech->find_all_links( url_regex => qr{https?://fetlife.com/groups/\d+/group_posts/\d+$} );
 
   while (my $next = $mech->find_link( url_regex => qr{/users/$id/activity/more\?page}, text_regex => qr/view more/ )) {
@@ -139,6 +139,7 @@ sub collectLinksInActivityFeed {
 
     push @statuses, $mech->find_all_links( url_regex => qr{/users/\d+/statuses/\d+$} );
     push @pictures, $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/pictures/\d+$} );
+    push @writings, $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/posts/\d+$} );
     push @group_posts, $mech->find_all_links( url_regex => qr{https?://fetlife.com/groups/\d+/group_posts/\d+$} );
   }
 
@@ -154,6 +155,11 @@ sub collectLinksInActivityFeed {
   $s = &s($pnum);
   print " $pnum picture$s found.\n";
 
+  # Count how many writings were found.
+  my $wnum = @writings;
+  $s = &s($wnum);
+  print " $wnum writing$s found.\n";
+
   # Count how many group threads were found.
   my $gnum = @group_posts;
   $s = &s($gnum);
@@ -166,6 +172,10 @@ sub collectLinksInActivityFeed {
 
   if ($pnum) {
     downloadPics($pnum, @pictures);
+  }
+
+  if ($wnum) {
+    downloadWritings($wnum, @writings);
   }
 
   if ($gnum) {
@@ -249,24 +259,15 @@ sub getGroupPost {
   $tree->delete();
 }
 
-sub downloadWriting {
+sub downloadWritings ($$) {
   mkdir "$dir/fetlife/posts";
 
-  print "Loading posts: .";
-  $mech->get("https://fetlife.com/users/$id/posts");
-  # Use FQURI in `find_all_links()` to avoid duplicate destinations in @links.
-  my @links = $mech->find_all_links( url_regex => qr{https://fetlife.com/users/$id/posts/\d+$} );
-  while (my $next = $mech->find_link( url_regex => qr{/posts\?page=(\d)}, text_regex => qr/Next/ )) {
-    print ".";
-    $mech->get($next);
-    push @links, $mech->find_all_links( url_regex => qr{/users/$id/posts/\d+$} );
-  }
+  my $num = shift;
+  my @links = @_;
 
-  my $num = @links;
-  my $s = &s($num);
+  print "Downloading $num posts...";
+
   my $i = 1;
-  print " $num post$s found.\n";
-  return unless $num;
   foreach my $page (@links) {
     print "$i/$num\r";
 
