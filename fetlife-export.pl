@@ -143,7 +143,10 @@ sub collectLinksInActivityFeed {
     push @group_posts, $mech->find_all_links( url_regex => qr{https?://fetlife.com/groups/\d+/group_posts/\d+$} );
   }
 
-  # TODO: Filter out duplicate links from these arrays; we don't need to hit them twice.
+  @statuses    = &filterLinksList(@statuses);
+  @pictures    = &filterLinksList(@pictures);
+  @writings    = &filterLinksList(@writings);
+  @group_posts = &filterLinksList(@group_posts);
 
   # Count how many statuses were found.
   my $snum = @statuses;
@@ -165,7 +168,7 @@ sub collectLinksInActivityFeed {
   $s = &s($gnum);
   print " $gnum group thread$s found.\n";
 
-  # If we found statuses, group threads, or pictures, go download them.
+  # If we found things to download, go download them.
   if ($snum) {
     downloadStatuses($snum, @statuses);
   }
@@ -271,7 +274,7 @@ sub downloadWritings ($$) {
   my $num = shift;
   my @links = @_;
 
-  print "Downloading $num posts...";
+  print "Downloading $num posts...\n";
 
   my $i = 1;
   foreach my $page (@links) {
@@ -345,6 +348,11 @@ sub getImage {
 
   close DATA;
   $tree->delete();
+}
+
+sub filterLinksList {
+  my %uniq = map { $_->url_abs(), $_ } @_;
+  return values %uniq;
 }
 
 sub getId {
