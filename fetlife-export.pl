@@ -30,6 +30,7 @@ mkpath("$dir/fetlife");
 
 &downloadProfile();
 &downloadConversations();
+&downloadWall();
 &collectLinksInActivityFeed();
 
 sub downloadProfile {
@@ -89,6 +90,37 @@ sub getMessages {
 
   close DATA;
   $tree->delete();
+}
+
+sub downloadWall {
+  print "Loading wall: .";
+  $mech->get("https://fetlife.com/users/$id/wall_posts");
+
+  my $tree;
+
+  $tree = HTML::TreeBuilder->new();
+  $tree->ignore_unknown(0);
+  $tree->parse($mech->content());
+
+  open(DATA, "> $dir/fetlife/wall.html") or die "Can't write wall.html";
+  print DATA $tree->look_down( id => 'wall_posts' )->as_HTML(undef, "\t", {}), "\n\n";
+
+  $tree->delete();
+
+  while (my $next = $mech->find_link( url_regex => qr{users/$id/wall_posts\?page}, text_regex => qr/^Next/ )) {
+    print ".";
+    $mech->get($next);
+
+    $tree = HTML::TreeBuilder->new();
+    $tree->ignore_unknown(0);
+    $tree->parse($mech->content());
+
+    print DATA $tree->look_down( id => 'wall_posts' )->as_HTML(undef, "\t", {}), "\n\n";
+
+    $tree->delete();
+  }
+
+  close DATA;
 }
 
 # Traverses a user's activity feed, collecting links to download.
