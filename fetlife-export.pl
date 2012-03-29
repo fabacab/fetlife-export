@@ -150,7 +150,7 @@ sub collectLinksInActivityFeed {
   my $s = &s($snum, 1);
   print " $snum status$s found.\n";
 
-  # Count how many group threads were found.
+  # Count how many pictures were found.
   my $pnum = @pictures;
   $s = &s($pnum);
   print " $pnum picture$s found.\n";
@@ -322,6 +322,7 @@ sub getImage {
   unless ( -f "$dir/fetlife/pictures/$name" ) {
     getstore($image->url(), "$dir/fetlife/pictures/$name");
   }
+
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
