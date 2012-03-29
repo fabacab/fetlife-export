@@ -105,42 +105,50 @@ sub collectLinksInActivityFeed {
   my @writings    = $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/posts/\d+$} );
   my @group_posts = $mech->find_all_links( url_regex => qr{https?://fetlife.com/groups/\d+/group_posts/\d+$} );
 
-  while (my $next = $mech->find_link( url_regex => qr{/users/$id/activity/more\?page}, text_regex => qr/view more/ )) {
-    print ".";
-    $mech->get($next);
+  # Catch errors, but crudely.
+  eval {
+    while (my $next = $mech->find_link( url_regex => qr{/users/$id/activity/more\?page}, text_regex => qr/view more/ )) {
+      print ".";
+      $mech->get($next);
 
-    #### FetLife returns straight-up jQuery, so clean this out before parsing.
-    #### TODO: Can we refactor this? It feels kludgy.
-    # Split into lines.
-    my @x = split("\n", $mech->content);
+      #### FetLife returns straight-up jQuery, so clean this out before parsing.
+      #### TODO: Can we refactor this? It feels kludgy.
+      # Split into lines.
+      my @x = split("\n", $mech->content);
 
-    # If this is the end of the feed, we'll only get 2 lines back with which we can do nothing.
-    # Otherwise, we'll get three lines.
-    if (3 == scalar(grep $_, @x)) {
-      # Ignore the first line.
+      # If this is the end of the feed, we'll only get 2 lines back with which we can do nothing.
+      # Otherwise, we'll get three lines.
+      if (3 == scalar(grep $_, @x)) {
+        # Ignore the first line.
 
-      # Clean the second line.
-      ## Extract the JavaScript and Unicode-encoded text from the jQuery commands.
-      ### Cut out the first 24 characters, which are always: `$("#mini_feed").append("`
-      my $x1 = substr($x[1], 24);
-      ### Cut out the last 3 characters, which are always: `");`
-      $x1 = substr($x1, 0, -3);
-      $x1 = Unicode::Escape::unescape($x1, 'UTF-8');
-      $x1 = String::Escape::unbackslash($x1);
+        # Clean the second line.
+        ## Extract the JavaScript and Unicode-encoded text from the jQuery commands.
+        ### Cut out the first 24 characters, which are always: `$("#mini_feed").append("`
+        my $x1 = substr($x[1], 24);
+        ### Cut out the last 3 characters, which are always: `");`
+        $x1 = substr($x1, 0, -3);
+        $x1 = Unicode::Escape::unescape($x1, 'UTF-8');
+        $x1 = String::Escape::unbackslash($x1);
 
-      my $x2 = substr($x[2], 23);
-      $x2 = substr($x2, 0, -3);
-      $x2 = String::Escape::unbackslash($x2);
+        my $x2 = substr($x[2], 23);
+        $x2 = substr($x2, 0, -3);
+        $x2 = String::Escape::unbackslash($x2);
 
-      # Concatenate the cleaned-up lines together.
-      my $html = Encode::decode_utf8($x1 . $x2);
-      $mech->update_html($html);
+        # Concatenate the cleaned-up lines together.
+        my $html = Encode::decode_utf8($x1 . $x2);
+        $mech->update_html($html);
+      }
+
+      push @statuses, $mech->find_all_links( url_regex => qr{/users/\d+/statuses/\d+$} );
+      push @pictures, $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/pictures/\d+$} );
+      push @writings, $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/posts/\d+$} );
+      push @group_posts, $mech->find_all_links( url_regex => qr{https?://fetlife.com/groups/\d+/group_posts/\d+$} );
     }
-
-    push @statuses, $mech->find_all_links( url_regex => qr{/users/\d+/statuses/\d+$} );
-    push @pictures, $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/pictures/\d+$} );
-    push @writings, $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/posts/\d+$} );
-    push @group_posts, $mech->find_all_links( url_regex => qr{https?://fetlife.com/groups/\d+/group_posts/\d+$} );
+  };
+  # Did we hit an error while trying to download the activity feed?
+  # TODO: This error handling should be a bit more robust, methinks.
+  if ($@) {
+    print "$0 encountered an error loading activity feed for $username (ID $id): $@";
   }
 
   @statuses    = &filterLinksList(@statuses);
