@@ -121,6 +121,8 @@ sub downloadWall {
   }
 
   close DATA;
+
+  print "\n";
 }
 
 # Traverses a user's activity feed, collecting links to download.
