@@ -22,11 +22,11 @@ ReadMode('normal');
 chomp $password;
 print "\n";
 
-mkpath("$dir/fetlife");
-
 &login($username, $password);
 my $id = &getId();
 print "userID: $id\n";
+
+mkpath("$dir/fetlife");
 
 &downloadProfile();
 &downloadStatuses();
