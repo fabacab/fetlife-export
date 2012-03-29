@@ -29,9 +29,8 @@ print "userID: $id\n";
 mkpath("$dir/fetlife");
 
 &downloadProfile();
-&downloadStatuses();
+&collectLinksInActivityFeed();
 &downloadConversations();
-&downloadPics();
 &downloadWriting();
 
 sub downloadProfile {
@@ -93,12 +92,19 @@ sub getMessages {
   $tree->delete();
 }
 
-sub downloadStatuses {
-  mkdir "$dir/fetlife/statuses";
+# Traverses a user's activity feed, collecting links to download.
+# TODO: Refactor this so the `downloadStatuses()` and `downloadGroupPosts()` functions
+#       aren't actually nested here.
+sub collectLinksInActivityFeed {
+  print "Loading activity feed: .";
 
-  print "Loading statuses: .";
   $mech->get("https://fetlife.com/users/$id/activity");
-  my @links = $mech->find_all_links( url_regex => qr{https://fetlife.com/users/$id/statuses/\d+$} );
+
+  # Only links to one's own statuses are FQURIs, so use absolute (server-relative) URI.
+  my @statuses    = $mech->find_all_links( url_regex => qr{/users/\d+/statuses/\d+$} );
+  my @pictures    = $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/pictures/\d+$} );
+  my @group_posts = $mech->find_all_links( url_regex => qr{https?://fetlife.com/groups/\d+/group_posts/\d+$} );
+
   while (my $next = $mech->find_link( url_regex => qr{/users/$id/activity/more\?page}, text_regex => qr/view more/ )) {
     print ".";
     $mech->get($next);
@@ -108,43 +114,74 @@ sub downloadStatuses {
     # Split into lines.
     my @x = split("\n", $mech->content);
 
-    # Ignore the first line.
+    # If this is the end of the feed, we'll only get 2 lines back with which we can do nothing.
+    # Otherwise, we'll get three lines.
+    if (3 == scalar(grep $_, @x)) {
+      # Ignore the first line.
 
-    # Clean the second line.
-    ## Extract the JavaScript and Unicode-encoded text from the jQuery commands.
-    ### Cut out the first 24 characters, which are always: `$("#mini_feed").append("`
-    my $x1 = substr($x[1], 24);
-    ### Cut out the last 3 characters, which are always: `");`
-    $x1 = substr($x1, 0, -3);
-    ### Decode the Unicode.
-    $x1 = Unicode::Escape::unescape($x1, 'UTF-8');
-    ### Convert literal '\n' into newlines.
-    ### Strip all slashes to stop escaping '"' chracters.
-    $x1 = String::Escape::unbackslash($x1);
+      # Clean the second line.
+      ## Extract the JavaScript and Unicode-encoded text from the jQuery commands.
+      ### Cut out the first 24 characters, which are always: `$("#mini_feed").append("`
+      my $x1 = substr($x[1], 24);
+      ### Cut out the last 3 characters, which are always: `");`
+      $x1 = substr($x1, 0, -3);
+      $x1 = Unicode::Escape::unescape($x1, 'UTF-8');
+      $x1 = String::Escape::unbackslash($x1);
 
-    # Clean the third line.
-    ## Extract the JavaScript text from the jQuery commands.
-    ### Cut out the first 23 characters, which are always: `$("#mini_feed").after("`
-    my $x2 = substr($x[2], 23);
-    ### Cut out the last 3 characters, which are always: `");`
-    $x2 = substr($x2, 0, -3);
-    ### Convert literal '\n' into newlines.
-    ### Strip all slashes to stop escaping '"' chracters.
-    $x2 = String::Escape::unbackslash($x2);
+      my $x2 = substr($x[2], 23);
+      $x2 = substr($x2, 0, -3);
+      $x2 = String::Escape::unbackslash($x2);
 
-    # Concatenate the cleaned-up lines together.
-    my $html = Encode::decode_utf8($x1 . $x2);
-    # Tell WWW::Mechanize to use the new HTML content.
-    $mech->update_html($html);
+      # Concatenate the cleaned-up lines together.
+      my $html = Encode::decode_utf8($x1 . $x2);
+      $mech->update_html($html);
+    }
 
-    push @links, $mech->find_all_links( url_regex => qr{https://fetlife.com/users/$id/statuses/\d+$} );
+    push @statuses, $mech->find_all_links( url_regex => qr{/users/\d+/statuses/\d+$} );
+    push @pictures, $mech->find_all_links( url_regex => qr{https?://fetlife.com/users/\d+/pictures/\d+$} );
+    push @group_posts, $mech->find_all_links( url_regex => qr{https?://fetlife.com/groups/\d+/group_posts/\d+$} );
   }
 
-  my $num = @links;
-  my $s = &s($num, 1);
+  # TODO: Filter out duplicate links from these arrays; we don't need to hit them twice.
+
+  # Count how many statuses were found.
+  my $snum = @statuses;
+  my $s = &s($snum, 1);
+  print " $snum status$s found.\n";
+
+  # Count how many group threads were found.
+  my $pnum = @pictures;
+  $s = &s($pnum);
+  print " $pnum picture$s found.\n";
+
+  # Count how many group threads were found.
+  my $gnum = @group_posts;
+  $s = &s($gnum);
+  print " $gnum group thread$s found.\n";
+
+  # If we found statuses, group threads, or pictures, go download them.
+  if ($snum) {
+    downloadStatuses($snum, @statuses);
+  }
+
+  if ($pnum) {
+    downloadPics($pnum, @pictures);
+  }
+
+  if ($gnum) {
+    downloadGroupPosts($gnum, @group_posts);
+  }
+}
+
+sub downloadStatuses ($$) {
+  mkdir "$dir/fetlife/statuses";
+
+  my $num = shift;
+  my @links = @_;
+
+  print "Downloading $num statuses...\n";
+
   my $i = 1;
-  print " $num status$s found.\n";
-  return unless $num;
   foreach my $page (@links) {
     print "$i/$num\r";
 
@@ -169,6 +206,44 @@ sub getStatus {
 
   open(DATA, "> $dir/fetlife/statuses/$name.html") or die "Can't write $name.html";
   print DATA $tree->look_down( id => "status_$name" )->as_HTML(undef, "\t", {}), "\n\n";
+
+  close DATA;
+  $tree->delete();
+}
+
+sub downloadGroupPosts ($$) {
+  mkdir "$dir/fetlife/group_posts";
+
+  my $num = shift;
+  my @links = @_;
+
+  print "Downloading $num group posts...\n";
+
+  my $i = 1;
+  foreach my $page (@links) {
+    print "$i/$num\r";
+
+    # TODO: This only grabs the first page--a "post"--but should grab the whole thread.
+    &getGroupPost($page);
+
+    $i++;
+  }
+}
+
+sub getGroupPost {
+  my $page = shift;
+  my $tree;
+  $mech->get($page);
+  $tree = HTML::TreeBuilder->new();
+  $tree->ignore_unknown(0);
+  $tree->parse($mech->content());
+  my $name = basename($page->url());
+
+  # TODO: If this thread has more than one page of comments, we should grab those, too.
+
+  open(DATA, "> $dir/fetlife/group_posts/$name.html") or die "Can't write $name.html";
+  print DATA $tree->look_down( class => qr{group_post} )->as_HTML(undef, "\t", {}), "\n\n";
+  print DATA $tree->look_down( id => 'comments' )->as_HTML(undef, "\t", {}), "\n\n";
 
   close DATA;
   $tree->delete();
@@ -217,23 +292,15 @@ sub getPost {
   $tree->delete();
 }
 
-sub downloadPics {
+sub downloadPics ($$) {
   mkdir "$dir/fetlife/pictures";
 
-  print "Loading pictures: .";
-  $mech->get("https://fetlife.com/users/$id/pictures");
-  my @links = $mech->find_all_links( url_regex => qr{/users/$id/pictures/\d+$} );
-  while (my $next = $mech->find_link( url_regex => qr{/pictures\?page=(\d)}, text_regex => qr/Next/ )) {
-    print ".";
-    $mech->get($next);
-    push @links, $mech->find_all_links( url_regex => qr{/users/$id/pictures/\d+$} );
-  }
+  my $num = shift;
+  my @links = @_;
 
-  my $num = @links;
-  my $s = &s($num);
+  print "Downloading $num pictures...\n";
+
   my $i = 1;
-  print " $num picture$s found.\n";
-  return unless $num;
   foreach my $page (@links) {
     print "$i/$num\r";
 
