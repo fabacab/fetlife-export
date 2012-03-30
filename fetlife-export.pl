@@ -97,35 +97,63 @@ sub getMessages {
 #       walls to get the other half of the conversation, too.
 sub downloadWall {
   print "Loading wall: .";
+
+  # Grab the first page of my wall.
   $mech->get("https://fetlife.com/users/$id/wall_posts");
 
+  my @links = $mech->find_all_links( url_regex => qr/wall_to_wall/ );
+
+  while (my $next = $mech->find_link( url_regex => qr{users/$id/wall_posts\?page}, text_regex => qr/^Next/ )) {
+    print ".";
+    $mech->get($next);
+    push @links, $mech->find_all_links( url_regex => qr/wall_to_wall/ );
+  }
+  @links = &filterLinksList(@links);
+
+  my $num = @links;
+  my $s = &s($num);
+  print " $num wall-to-wall$s found.\n";
+
+  if ($num) {
+    downloadWallToWall($num, @links);
+  }
+}
+
+sub downloadWallToWall ($$) {
+  mkdir "$dir/fetlife/wall_to_wall";
+
+  my $num = shift;
+  my @links = @_;
+
+  print "Downloading $num wall-to-walls...\n";
+
+  my $i = 1;
+  foreach my $page (@links) {
+    print "$i/$num\r";
+
+    &getWallToWall($page);
+
+    $i++;
+  }
+}
+
+sub getWallToWall {
+  my $page = shift;
   my $tree;
+
+  $mech->get($page);
+
+  my $name = $mech->title();
 
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
 
-  open(DATA, "> $dir/fetlife/wall.html") or die "Can't write wall.html";
+  open(DATA, "> $dir/fetlife/wall_to_wall/$name.html") or die "Can't write wall.html";
   print DATA $tree->look_down( id => 'wall_posts' )->as_HTML(undef, "\t", {}), "\n\n";
 
-  $tree->delete();
-
-  while (my $next = $mech->find_link( url_regex => qr{users/$id/wall_posts\?page}, text_regex => qr/^Next/ )) {
-    print ".";
-    $mech->get($next);
-
-    $tree = HTML::TreeBuilder->new();
-    $tree->ignore_unknown(0);
-    $tree->parse($mech->content());
-
-    print DATA $tree->look_down( id => 'wall_posts' )->as_HTML(undef, "\t", {}), "\n\n";
-
-    $tree->delete();
-  }
-
   close DATA;
-
-  print "\n";
+  $tree->delete();
 }
 
 # Traverses a user's activity feed, collecting links to download.
