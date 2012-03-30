@@ -286,6 +286,10 @@ sub getStatus {
   my $name = basename($page->url());
 
   $mech->get($page);
+  if (!$mech->success()) {
+    print "$0: Error GETing $page";
+    return;
+  }
 
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
@@ -296,12 +300,18 @@ sub getStatus {
   foreach my $comment (@comments) {
     $comment->attr( 'style', undef );
   }
-  $tree->look_down( class => qr/new_comment/ )->delete();
+  eval {
+    $tree->look_down( class => qr/new_comment/ )->delete();
+  };
+  # If we've hit an error, we don't write a file, so we may catch it on next round.
+  if ($@) {
+    print "$0: Oh no, Molly! Error on " . $page->url() . " $@\n";
+  } else {
+    open(DATA, "> $dir/fetlife/statuses/$name.html") or die "Can't write $name.html";
+    print DATA $tree->look_down( id => "status_$name" )->as_HTML(undef, "\t", {}), "\n\n";
+    close DATA;
+  }
 
-  open(DATA, "> $dir/fetlife/statuses/$name.html") or die "Can't write $name.html";
-  print DATA $tree->look_down( id => "status_$name" )->as_HTML(undef, "\t", {}), "\n\n";
-
-  close DATA;
   $tree->delete();
 }
 
@@ -317,7 +327,6 @@ sub downloadGroupPosts ($$) {
   foreach my $page (@links) {
     print "$i/$num\r";
 
-    # TODO: This only grabs the first page--a "post"--but should grab the whole thread.
     my $name = basename($page->url());
     unless ( -f "$dir/fetlife/group_posts/$name.html" ) {
       &getGroupThread($page);
@@ -393,10 +402,13 @@ sub getPost {
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
   my $name = basename($page->url());
+  if (!$tree->look_down( id => 'post_content' )) {
+    print "$0: Oh no, Molly! Error on " . $page->url() . "\n";
+    return;
+  }
   open(DATA, "> $dir/fetlife/posts/$name.html") or die "Can't write $name.html: $!";
   print DATA $tree->look_down( id => 'post_content' )->as_HTML(undef, "\t", {}), "\n\n";
   print DATA $tree->look_down( id => 'comments' )->as_HTML(undef, "\t", {}), "\n\n";
-
   close DATA;
   $tree->delete();
 }
@@ -424,7 +436,12 @@ sub getImage {
   my $tree;
   $mech->get($page);
   my $image = $mech->find_image( url_regex => qr{flpics.*_720\.jpg} );
+  if (!$image) {
+    print "$0: Oh no, Molly! Error on " . $page->url() . "\n";
+    return;
+  }
   my $name = basename($image->url());
+
   # Don't download images we've already grabbed.
   # TODO: Extend this so we don't download pages/threads we've already grabbed, either.
   unless ( -f "$dir/fetlife/pictures/$name" ) {
@@ -434,15 +451,16 @@ sub getImage {
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
-  open(DATA, "> $dir/fetlife/pictures/$name.html") or die "Can't write $name.html: $!";
+
   my $picture = $tree->look_down( id => "picture" );
   my $pic_img = $picture->find_by_tag_name( 'img' );
   $pic_img    = \$pic_img->attr( 'src', $name );
 
+  open(DATA, "> $dir/fetlife/pictures/$name.html") or die "Can't write $name.html: $!";
   print DATA $picture->as_HTML(undef, "\t", {}), "\n\n";
   print DATA $tree->look_down( id => "comments" )->as_HTML(undef, "\t", {}), "\n\n";
-
   close DATA;
+
   $tree->delete();
 }
 
