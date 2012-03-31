@@ -353,8 +353,11 @@ sub getGroupThread {
 
   open(DATA, "> $dir/fetlife/group_posts/$name.html") or die "Can't write $name.html";
   print DATA $tree->look_down( class => qr{group_post} )->as_HTML(undef, "\t", {}), "\n\n";
-  print DATA $tree->look_down( id => 'comments' )->as_HTML(undef, "\t", {}), "\n\n";
-
+  my $comments = $tree->look_down( id => 'comments' );
+  if ($comments) {
+    print DATA '<br /><div id="group_post_comments_container">'; # FetLife's HTML.
+    print DATA $tree->look_down( id => 'comments' )->as_HTML(undef, "\t", {}), "\n\n";
+  }
   $tree->delete();
 
   # Also download comments on next pages.
@@ -366,6 +369,7 @@ sub getGroupThread {
     $tree->parse($mech->content());
 
     print DATA $tree->look_down( id => 'comments' )->as_HTML(undef, "\t", {}), "\n\n";
+    print DATA '</div><!-- /#group_post_comments_container -->'; # FetLife's HTML.
 
     $tree->delete();
   }
