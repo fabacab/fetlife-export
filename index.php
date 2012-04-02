@@ -5,6 +5,16 @@
 
 $username = $_GET['username'];
 $password = $_GET['password'];
+$disallow_robots = (int)$_GET['disallow_robots'];
+
+if (!file_exists('robots.txt')) {
+    if ($fh = fopen('robots.txt', 'w')) {
+        fwrite($fh, "User-Agent: *\n");
+        fclose($fh);
+    } else {
+        die("Couldn't create robots.txt. Make sure your directory permissions are set appropriately?");
+    }
+}
 
 $cmd = 'fetlife-export.pl';
 $export_dir = $username . @date('-Y-m-d');
@@ -24,6 +34,11 @@ $export_dir = $username . @date('-Y-m-d');
             <input name="username" id="username" value="username" />
             <label for="password">Password:</label>
             <input type="password" name="password" id="password" value="password" />
+        </fieldset>
+        <fieldset>
+            <legend>Export options</legend>
+            <label for="disallow_robots">Ask search engines not to index your exported archive:</label>
+            <input type="checkbox" name="disallow_robots" id="disallow_robots" value="1" />
         </fieldset>
         <input type="submit" />
     </form>
@@ -79,6 +94,23 @@ while ($line = stream_get_line($pipes[1], 1024)) {
         $num_group_threads = $matches[1];
     }
 }
+
+foreach ($pipes as $pipe) {
+    fclose($pipe);
+}
+proc_close($ph);
+
+if ($disallow_robots && is_dir($export_dir)) {
+    if (disallowRobots($export_dir)) {
+?>
+    <p>We've requested that search engines <em>not</em> index your FetLife export. (This is not a guarantee they'll behave!)</p>
+<?php
+    } else {
+?>
+    <p>You requested that search engines <em>not</em> index your FetLife export, but there was an error handling this request. Please contact the site administrator for assistance.</p>
+<?php
+    }
+}
 ?>
     <p>Done exporting user ID <?php print $id;?>. Found:</p>
     <ul>
@@ -90,16 +122,19 @@ while ($line = stream_get_line($pipes[1], 1024)) {
         <li><?php printHTMLSafe($num_group_threads);?> group threads.</li>
     </ul>
     <p><a href="<?php printHTMLSafe($export_dir);?>/fetlife/">Browse <?php printHTMLSafe($username);?></a>.</p>
-<?php
-foreach ($pipes as $pipe) {
-    fclose($pipe);
-}
-proc_close($ph);
-?>
 </body>
 </html>
 <?
 function printHTMLSafe ($str) {
     print htmlentities($str, ENT_QUOTES, 'UTF-8');
+}
+
+function disallowRobots ($dir) {
+    if (!$fh = fopen('robots.txt', 'a')) {
+        return false;
+    }
+    $ret = fwrite($fh, "Disallow: $dir/\n");
+    fclose($fh);
+    return $ret;
 }
 ?>
