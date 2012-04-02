@@ -13,16 +13,14 @@ if ($username && (int)$_GET['download_archive']) {
     $zip_dir = dirname(basename(__FILE__)) . "/$export_dir";
     $zip_url = dirname($_SERVER['PHP_SELF']) . "/$export_dir.zip";
 
-    $redirect_to  = ($_SERVER['HTTPS']) ? 'https://' : 'http://' ;
-    $redirect_to .= ($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : $_SERVER['SERVER_NAME'];
-    $redirect_to .= $zip_url;
     exec(escapeshellcmd('zip -r ' . escapeshellarg($zip_dir) . '.zip ' . escapeshellarg($zip_dir)));
-    header("Location: $redirect_to");
+    header('Content-type: application/zip');
+    header("Content-Disposition: attachment; filename=\"$export_dir.zip\"");
+    readfile("$zip_dir.zip");
     ob_end_flush();
     ob_flush();
     flush();
     if ($_GET['delete_archive']) {
-        sleep(10); // TODO: We should actually use a semaphore for this?
         exec(escapeshellcmd('rm -rf ' . escapeshellarg($export_dir)), $output);
         exec(escapeshellcmd('rm -f ' . escapeshellarg("$zip_dir.zip")), $output);
     }
