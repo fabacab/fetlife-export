@@ -42,7 +42,19 @@ sub downloadProfile {
   $tree->parse($mech->content());
 
   open(DATA, "> $dir/fetlife/$id.html") or die "Can't write $id.html: $!";
+  if (open(FILE, "< templates/header.html")) {
+    while (<FILE>) {
+        print DATA $_;
+    }
+    close FILE;
+  }
   print DATA $tree->look_down( id => 'profile' )->as_HTML(undef, "\t", {}), "\n\n";
+  if (open(FILE, "< templates/footer.html")) {
+    while (<FILE>) {
+        print DATA $_;
+    }
+    close FILE;
+  }
 
   close DATA;
   $tree->delete();
@@ -308,7 +320,31 @@ sub getStatus {
     print "$0: Oh no, Molly! Error on " . $page->url() . " $@\n";
   } else {
     open(DATA, "> $dir/fetlife/statuses/$name.html") or die "Can't write $name.html";
+    if (open(FILE, "< templates/header.html")) {
+      while (<FILE>) {
+          print DATA $_;
+      }
+      close FILE;
+    }
+    if (open(FILE, "< templates/statuses-top.html")) {
+      while (<FILE>) {
+          print DATA $_;
+      }
+      close FILE;
+    }
     print DATA $tree->look_down( id => "status_$name" )->as_HTML(undef, "\t", {}), "\n\n";
+    if (open(FILE, "< templates/statuses-bottom.html")) {
+      while (<FILE>) {
+          print DATA $_;
+      }
+      close FILE;
+    }
+    if (open(FILE, "< templates/footer.html")) {
+      while (<FILE>) {
+          print DATA $_;
+      }
+      close FILE;
+    }
     close DATA;
   }
 
@@ -352,6 +388,18 @@ sub getGroupThread {
   # TODO: Edit HTML so `#comments` ID isn't repeated and pagination links are intra-page.
 
   open(DATA, "> $dir/fetlife/group_posts/$name.html") or die "Can't write $name.html";
+  if (open(FILE, "< templates/header.html")) {
+    while (<FILE>) {
+        print DATA $_;
+    }
+    close FILE;
+  }
+  if (open(FILE, "< templates/group_posts-top.html")) {
+    while (<FILE>) {
+        print DATA $_;
+    }
+    close FILE;
+  }
   print DATA $tree->look_down( class => qr{group_post} )->as_HTML(undef, "\t", {}), "\n\n";
   my $comments = $tree->look_down( id => 'comments' );
   if ($comments) {
@@ -372,6 +420,18 @@ sub getGroupThread {
     print DATA '</div><!-- /#group_post_comments_container -->'; # FetLife's HTML.
 
     $tree->delete();
+  }
+  if (open(FILE, "< templates/group_posts-bottom.html")) {
+    while (<FILE>) {
+        print DATA $_;
+    }
+    close FILE;
+  }
+  if (open(FILE, "< templates/footer.html")) {
+    while (<FILE>) {
+        print DATA $_;
+    }
+    close FILE;
   }
 
   close DATA;
@@ -411,8 +471,32 @@ sub getPost {
     return;
   }
   open(DATA, "> $dir/fetlife/posts/$name.html") or die "Can't write $name.html: $!";
+  if (open(FILE, "< templates/header.html")) {
+    while (<FILE>) {
+        print DATA $_;
+    }
+    close FILE;
+  }
+  if (open(FILE, "< templates/posts-top.html")) {
+    while (<FILE>) {
+        print DATA $_;
+    }
+    close FILE;
+  }
   print DATA $tree->look_down( id => 'post_content' )->as_HTML(undef, "\t", {}), "\n\n";
   print DATA $tree->look_down( id => 'comments' )->as_HTML(undef, "\t", {}), "\n\n";
+  if (open(FILE, "< templates/posts-bottom.html")) {
+    while (<FILE>) {
+        print DATA $_;
+    }
+    close FILE;
+  }
+  if (open(FILE, "< templates/footer.html")) {
+    while (<FILE>) {
+        print DATA $_;
+    }
+    close FILE;
+  }
   close DATA;
   $tree->delete();
 }
