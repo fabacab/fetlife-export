@@ -7,7 +7,31 @@ $username = $_GET['username'];
 $password = $_GET['password'];
 
 $cmd = 'fetlife-export.pl';
-$export_dir = $username . date('-Y-m-d');
+$export_dir = $username . @date('-Y-m-d');
+
+?><!DOCTYPE html>
+<html lang="en">
+<head>
+<title>FetLife Exporter</title>
+</head>
+<body>
+    <h1>FetLife Exporter</h1>
+    <p>This tool lets you export your FetLife history.</p>
+    <form action="<?php print $_SERVER['PHP_SELF']?>">
+        <fieldset>
+            <legend>FetLife connection details</legend>
+            <label for="username">Username:</label>
+            <input name="username" id="username" value="username" />
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password" value="password" />
+        </fieldset>
+        <input type="submit" />
+    </form>
+<?php
+
+if (empty($username) || empty($password)) {
+    die("</body></html><!-- No username or password found. -->");
+}
 
 $cmd_safe = escapeshellcmd("./$cmd " . escapeshellarg($username) . ' ' . escapeshellarg($export_dir));
 
@@ -55,16 +79,27 @@ while ($line = stream_get_line($pipes[1], 1024)) {
         $num_group_threads = $matches[1];
     }
 }
-
-print "Done exporting user ID $id!";
-print "Found $num_conversations conversations, $num_wall_to_walls wall-to-walls, $num_statuses statuses, $num_pics pictures, $num_writings writings, and $num_group_threads group threads.";
-
-$username_html_safe = htmlentities($username, ENT_QUOTES, 'UTF-8');
-$export_dir_html_safe = htmlentities($export_dir, ENT_QUOTES, 'UTF-8');
-print "<a href=\"$export_dir\">Browse $username_html_safe.</a>";
-
+?>
+    <p>Done exporting user ID <?php print $id;?>. Found:</p>
+    <ul>
+        <li><?php printHTMLSafe($num_conversations);?> conversations,</li>
+        <li><?php printHTMLSafe($num_wall_to_walls);?> wall-to-walls,</li>
+        <li><?php printHTMLSafe($num_statuses);?> statuses,</li>
+        <li><?php printHTMLSafe($num_pics);?> pictures,</li>
+        <li><?php printHTMLSafe($num_writings);?> writings,</li>
+        <li><?php printHTMLSafe($num_group_threads);?> group threads.</li>
+    </ul>
+    <p><a href="<?php printHTMLSafe($export_dir);?>/fetlife/">Browse <?php printHTMLSafe($username);?></a>.</p>
+<?php
 foreach ($pipes as $pipe) {
     fclose($pipe);
 }
 proc_close($ph);
+?>
+</body>
+</html>
+<?
+function printHTMLSafe ($str) {
+    print htmlentities($str, ENT_QUOTES, 'UTF-8');
+}
 ?>
