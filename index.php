@@ -3,13 +3,13 @@
  * Oh, let's be careful with this one. :)
  */
 
-//ob_implicit_flush(TRUE);
-//ob_end_flush();
-
 $username = $_GET['username'];
 $password = $_GET['password'];
 
-$cmd_safe = escapeshellcmd('./fetlife-export.pl ' . escapeshellarg($username) . ' ' . escapeshellarg($username));
+$cmd = 'fetlife-export.pl';
+$export_dir = $username . date('-Y-m-d');
+
+$cmd_safe = escapeshellcmd("./$cmd " . escapeshellarg($username) . ' ' . escapeshellarg($export_dir));
 
 $descriptorspec = array(
     0 => array("pipe", "r"), // stdin is a pipe that the child will read from
@@ -22,41 +22,49 @@ if (!is_resource($ph)) {
     die("Error executing $cmd_safe");
 }
 
-//stream_set_blocking($pipes[0], 0);
-//stream_set_blocking($pipes[1], 0);
-//stream_set_blocking($pipes[2], 0);
-
 if ('Password: ' === stream_get_contents($pipes[1], 10)) {
-    echo "We saw a password prompt";
-    echo "Sending '$password\\n'";
     fwrite($pipes[0], "$password\n");
 }
 
-$read = array($pipes[1], $pipes[2]);
-$write = array($pipes[0]);
-$except = NULL;
-while (!false === stream_select($read, $write, $except, 1)) {
-    foreach ($read as $stream) {
-        if ($pipes[1] === $stream) {
-            print "Stream STDOUT";
-            print stream_get_contents($stream, 1);
-            var_dump(stream_get_meta_data($stream));
-        } elseif ($pipes[2] === $stream) {
-            print "Stream STDERR";
-            print stream_get_contents($stream, 1);
-            var_dump(stream_get_meta_data($stream));
-        } else {
-            print "Some other stream?";
-            var_dump(stream_get_meta_data($stream));
-        }
+while ($line = stream_get_line($pipes[1], 1024)) {
+//    var_dump(str_replace("\n", '\n', str_replace("\r", '\r', $line)));
+
+    if (empty($line)) { continue; }
+
+    // Extract info from output.
+    $matches = array();
+    if (preg_match('/userID: ([0-9]+)/', $line, $matches)) {
+        $id = $matches[1];
+    }
+    if (preg_match('/([0-9]+) conversations? found./', $line, $matches)) {
+        $num_conversations = $matches[1];
+    }
+    if (preg_match('/([0-9]+) wall-to-walls? found./', $line, $matches)) {
+        $num_wall_to_walls = $matches[1];
+    }
+    if (preg_match('/([0-9]+) status(?:es)? found./', $line, $matches)) {
+        $num_statuses = $matches[1];
+    }
+    if (preg_match('/([0-9]+) pictures? found./', $line, $matches)) {
+        $num_pics = $matches[1];
+    }
+    if (preg_match('/([0-9]+) writings? found./', $line, $matches)) {
+        $num_writings = $matches[1];
+    }
+    if (preg_match('/([0-9]+) group threads? found./', $line, $matches)) {
+        $num_group_threads = $matches[1];
     }
 }
 
-//while (!feof($pipes[1])) {
-//    print stream_get_contents($pipes[1], 1);
-//}
+print "Done exporting user ID $id!";
+print "Found $num_conversations conversations, $num_wall_to_walls wall-to-walls, $num_statuses statuses, $num_pics pictures, $num_writings writings, and $num_group_threads group threads.";
 
-fclose($pipes[0]);
-fclose($pipes[1]);
+$username_html_safe = htmlentities($username, ENT_QUOTES, 'UTF-8');
+$export_dir_html_safe = htmlentities($export_dir, ENT_QUOTES, 'UTF-8');
+print "<a href=\"$export_dir\">Browse $username_html_safe.</a>";
+
+foreach ($pipes as $pipe) {
+    fclose($pipe);
+}
 proc_close($ph);
 ?>
