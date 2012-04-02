@@ -7,18 +7,41 @@ $username = $_GET['username'];
 $password = $_GET['password'];
 $disallow_robots = (int)$_GET['disallow_robots'];
 
-if (!file_exists('robots.txt')) {
-    if ($fh = fopen('robots.txt', 'w')) {
-        fwrite($fh, "User-Agent: *\n");
-        fclose($fh);
-    } else {
-        die("Couldn't create robots.txt. Make sure your directory permissions are set appropriately?");
+$export_dir = $username . @date('-Y-m-d');
+
+if ($username && (int)$_GET['download_archive']) {
+    $zip_dir = dirname(basename(__FILE__)) . "/$export_dir";
+    $zip_url = dirname($_SERVER['PHP_SELF']) . "/$export_dir.zip";
+
+    $redirect_to  = ($_SERVER['HTTPS']) ? 'https://' : 'http://' ;
+    $redirect_to .= ($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : $_SERVER['SERVER_NAME'];
+    $redirect_to .= $zip_url;
+    exec(escapeshellcmd('zip -r ' . escapeshellarg($zip_dir) . '.zip ' . escapeshellarg($zip_dir)));
+    header("Location: $redirect_to");
+    ob_end_flush();
+    ob_flush();
+    flush();
+    if ($_GET['delete_archive']) {
+        sleep(10); // TODO: We should actually use a semaphore for this?
+        exec(escapeshellcmd('rm -rf ' . escapeshellarg($export_dir)), $output);
+        exec(escapeshellcmd('rm -f ' . escapeshellarg("$zip_dir.zip")), $output);
     }
 }
 
-$cmd = 'fetlife-export.pl';
-$export_dir = $username . @date('-Y-m-d');
+// TODO: Make this work regardless of the current position of this script.
+//       Right now, it only functions correctly if this file is placed in
+//       the DOCUMENT_ROOT.
+$robotstxt = realpath(dirname(basename($_SERVER['SCRIPT_NAME']))) . '/robots.txt';
+define('FLEXPORT_ROBOTS_TXT', $robotstxt);
 
+if (!file_exists(FLEXPORT_ROBOTS_TXT)) {
+    if ($fh = fopen(FLEXPORT_ROBOTS_TXT, 'w')) {
+        fwrite($fh, "User-Agent: *\n");
+        fclose($fh);
+    } else {
+        die("Couldn't create " . FLEXPORT_ROBOTS_TXT . ". Make sure directory permissions are set appropriately?");
+    }
+}
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,6 +71,7 @@ if (empty($username) || empty($password)) {
     die("</body></html><!-- No username or password found. -->");
 }
 
+$cmd = 'fetlife-export.pl';
 $cmd_safe = escapeshellcmd("./$cmd " . escapeshellarg($username) . ' ' . escapeshellarg($export_dir));
 
 $descriptorspec = array(
@@ -121,7 +145,17 @@ if ($disallow_robots && is_dir($export_dir)) {
         <li><?php printHTMLSafe($num_writings);?> writings,</li>
         <li><?php printHTMLSafe($num_group_threads);?> group threads.</li>
     </ul>
-    <p><a href="<?php printHTMLSafe($export_dir);?>/fetlife/">Browse <?php printHTMLSafe($username);?></a>.</p>
+    <p><a href="<?php printHTMLSafe($export_dir);?>/fetlife/">Browse <?php printHTMLSafe($username);?></a>. Or:</p>
+    <form action="<?php print $_SERVER['PHP_SELF']?>">
+        <input type="hidden" name="username" id="download_username" value="<?php printHTMLSafe($username);?>" />
+        <input type="hidden" name="download_archive" id="download_archive" value="1" />
+        <input type="submit" value="Download my export as a ZIP archive." />
+        <fieldset>
+            <legend>Archive options</legend>
+            <label for="delete_archive">Don't save a copy of my export after I download it:</label>
+            <input type="checkbox" name="delete_archive" id="delete_archive" value="1" />
+        </fieldset>
+    </form>
 </body>
 </html>
 <?
@@ -130,8 +164,15 @@ function printHTMLSafe ($str) {
 }
 
 function disallowRobots ($dir) {
-    if (!$fh = fopen('robots.txt', 'a')) {
+    if (!$fh = fopen(FLEXPORT_ROBOTS_TXT, 'r+')) {
         return false;
+    }
+    // Search for pre-existing "Disallow" directive, return true if found.
+    while (($line = fgets($fh)) !== false) {
+        if (preg_match("/Disallow: $dir/", $line)) {
+            fclose($fh);
+            return true;
+        }
     }
     $ret = fwrite($fh, "Disallow: $dir/\n");
     fclose($fh);
