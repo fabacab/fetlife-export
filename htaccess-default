@@ -1,0 +1,4 @@
+<IfModule mod_autoindex.c>
+    # Let file names be as long as they need to be.
+    IndexOptions NameWidth=*
+</IfModule>
