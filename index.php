@@ -62,7 +62,7 @@ if (!file_exists(FLEXPORT_ROBOTS_TXT)) {
             <label for="password">Password:</label>
             <input type="password" name="password" id="password" value="password" />
         </fieldset>
-        <fieldset>
+        <fieldset<?php if ('/' !== dirname($_SERVER['REQUEST_URI'])) : print ' style="display:none"' ; endif;;?>>
             <legend>Export options</legend>
             <label for="disallow_robots">Ask search engines not to index your exported archive:</label>
             <input type="checkbox" name="disallow_robots" id="disallow_robots" value="1" />
