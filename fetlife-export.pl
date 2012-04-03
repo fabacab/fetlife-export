@@ -12,7 +12,7 @@ use Unicode::Escape;
 
 $|++;
 
-my $mech = new WWW::Mechanize;
+my $mech = new WWW::Mechanize( stack_depth => 0 ); # No need for history, save memory!
 my $username = shift or &usage;
 my $dir = shift || ".";
 print "Password: ";
