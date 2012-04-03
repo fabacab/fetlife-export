@@ -3,8 +3,8 @@
  * Oh, let's be careful with this one. :)
  */
 
-$username = $_GET['username'];
-$password = $_GET['password'];
+$username = $_REQUEST['username'];
+$password = $_REQUEST['password'];
 $disallow_robots = (int)$_GET['disallow_robots'];
 
 $export_dir = $username . @date('-Y-m-d');
@@ -48,7 +48,7 @@ if (!file_exists(FLEXPORT_ROBOTS_TXT)) {
 <body>
     <h1>FetLife Exporter</h1>
     <p>This tool lets you export your FetLife history.</p>
-    <form action="<?php print $_SERVER['PHP_SELF']?>">
+    <form action="<?php print $_SERVER['PHP_SELF']?>" method="post">
         <fieldset>
             <legend>FetLife connection details</legend>
             <label for="username">Username:</label>
