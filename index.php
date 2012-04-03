@@ -15,6 +15,7 @@ $zip_url = dirname($_SERVER['PHP_SELF']) . "/$export_dir.zip";
 if ($username && (int)$_REQUEST['download_archive']) {
     exec(escapeshellcmd('zip -r ' . escapeshellarg($zip_dir) . '.zip ' . escapeshellarg($zip_dir)));
     header('Content-type: application/zip');
+    header('Content-Length: ' . filesize("$zip_dir.zip"));
     header("Content-Disposition: attachment; filename=\"$export_dir.zip\"");
     readfile("$zip_dir.zip");
     ob_end_flush();
