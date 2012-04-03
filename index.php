@@ -2,17 +2,17 @@
 /**
  * Oh, let's be careful with this one. :)
  */
+require_once(dirname(__FILE__) . '/lib/FetLife.php');
 
 $username = $_REQUEST['username'];
 $password = $_REQUEST['password'];
-$disallow_robots = (int)$_GET['disallow_robots'];
+$disallow_robots = (int)$_REQUEST['disallow_robots'];
 
 $export_dir = $username . @date('-Y-m-d');
+$zip_dir = dirname(basename(__FILE__)) . "/$export_dir";
+$zip_url = dirname($_SERVER['PHP_SELF']) . "/$export_dir.zip";
 
-if ($username && (int)$_GET['download_archive']) {
-    $zip_dir = dirname(basename(__FILE__)) . "/$export_dir";
-    $zip_url = dirname($_SERVER['PHP_SELF']) . "/$export_dir.zip";
-
+if ($username && (int)$_REQUEST['download_archive']) {
     exec(escapeshellcmd('zip -r ' . escapeshellarg($zip_dir) . '.zip ' . escapeshellarg($zip_dir)));
     header('Content-type: application/zip');
     header("Content-Disposition: attachment; filename=\"$export_dir.zip\"");
@@ -20,10 +20,15 @@ if ($username && (int)$_GET['download_archive']) {
     ob_end_flush();
     ob_flush();
     flush();
-    if ($_GET['delete_archive']) {
+}
+if ($username && $password && (int)$_REQUEST['delete_archive']) {
+    $fetlife = new FetLife($username, $password);
+    if ($fetlife->isSignedIn()) {
         exec(escapeshellcmd('rm -rf ' . escapeshellarg($export_dir)), $output);
         exec(escapeshellcmd('rm -f ' . escapeshellarg("$zip_dir.zip")), $output);
     }
+    header("Location: {$SERVER_['PHP_SELF']}");
+    exit(0);
 }
 
 // TODO: Make this work regardless of the current position of this script.
@@ -144,8 +149,9 @@ if ($disallow_robots && is_dir($export_dir)) {
         <li><?php printHTMLSafe($num_group_threads);?> group threads.</li>
     </ul>
     <p><a href="<?php printHTMLSafe($export_dir);?>/fetlife/">Browse <?php printHTMLSafe($username);?></a>. Or:</p>
-    <form action="<?php print $_SERVER['PHP_SELF']?>">
+    <form action="<?php print $_SERVER['PHP_SELF']?>" method="post">
         <input type="hidden" name="username" id="download_username" value="<?php printHTMLSafe($username);?>" />
+        <input type="hidden" name="password" id="download_password" value="<?php printHTMLSafe($password);?>" />
         <input type="hidden" name="download_archive" id="download_archive" value="1" />
         <input type="submit" value="Download my export as a ZIP archive." />
         <fieldset>
