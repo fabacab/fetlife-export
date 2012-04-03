@@ -10,12 +10,13 @@ $disallow_robots = (int)$_REQUEST['disallow_robots'];
 
 $export_dir = $username . @date('-Y-m-d');
 $zip_dir = dirname(basename(__FILE__)) . "/$export_dir";
-$zip_url = dirname($_SERVER['PHP_SELF']) . "/$export_dir.zip";
+$zip_url = dirname($_SERVER['PHP_SELF']) . "$export_dir.zip";
 
 if ($username && (int)$_REQUEST['download_archive']) {
     exec(escapeshellcmd('zip -r ' . escapeshellarg($zip_dir) . '.zip ' . escapeshellarg($zip_dir)));
-    header('Content-type: application/zip');
+    header('Content-Type: application/zip');
     header('Content-Length: ' . filesize("$zip_dir.zip"));
+    header("Content-Location: $zip_url");
     header("Content-Disposition: attachment; filename=\"$export_dir.zip\"");
     readfile("$zip_dir.zip");
     ob_end_flush();
