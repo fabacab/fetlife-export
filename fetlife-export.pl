@@ -98,6 +98,7 @@ sub getMessages {
   my $name = $y[0];
 
   open(DATA, "> $dir/fetlife/conversations/$name.html") or die "Can't write $name.html";
+  print DATA "<!-- FetLife Exporter Source URL: " . $page->url_abs() . " -->", "\n\n";
   print DATA $tree->look_down( id => 'messages' )->as_HTML(undef, "\t", {}), "\n\n";
 
   close DATA;
@@ -162,6 +163,7 @@ sub getWallToWall {
   $tree->parse($mech->content());
 
   open(DATA, "> $dir/fetlife/wall_to_wall/$name.html") or die "Can't write wall.html";
+  print DATA "<!-- FetLife Exporter Source URL: " . $page->url_abs() . " -->", "\n\n";
   print DATA $tree->look_down( id => 'wall_posts' )->as_HTML(undef, "\t", {}), "\n\n";
 
   close DATA;
@@ -332,6 +334,7 @@ sub getStatus {
       }
       close FILE;
     }
+    print DATA "<!-- FetLife Exporter Source URL: " . $page->url_abs() . " -->", "\n\n";
     print DATA $tree->look_down( id => "status_$name" )->as_HTML(undef, "\t", {}), "\n\n";
     if (open(FILE, "< templates/statuses-bottom.html")) {
       while (<FILE>) {
@@ -400,6 +403,7 @@ sub getGroupThread {
     }
     close FILE;
   }
+  print DATA "<!-- FetLife Exporter Source URL: " . $page->url_abs() . " -->", "\n\n";
   print DATA $tree->look_down( class => qr{group_post} )->as_HTML(undef, "\t", {}), "\n\n";
   my $comments = $tree->look_down( id => 'comments' );
   if ($comments) {
@@ -483,6 +487,7 @@ sub getPost {
     }
     close FILE;
   }
+  print DATA "<!-- FetLife Exporter Source URL: " . $page->url_abs() . " -->", "\n\n";
   print DATA $tree->look_down( id => 'post_content' )->as_HTML(undef, "\t", {}), "\n\n";
   print DATA $tree->look_down( id => 'comments' )->as_HTML(undef, "\t", {}), "\n\n";
   if (open(FILE, "< templates/posts-bottom.html")) {
@@ -545,6 +550,7 @@ sub getImage {
   $pic_img    = \$pic_img->attr( 'src', $name );
 
   open(DATA, "> $dir/fetlife/pictures/$name.html") or die "Can't write $name.html: $!";
+  print DATA "<!-- FetLife Exporter Source URL: " . $page->url_abs() . " -->", "\n\n";
   print DATA $picture->as_HTML(undef, "\t", {}), "\n\n";
   print DATA $tree->look_down( id => "comments" )->as_HTML(undef, "\t", {}), "\n\n";
   close DATA;
