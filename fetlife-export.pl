@@ -528,26 +528,27 @@ sub getImage {
   my $page = shift;
   my $tree;
   $mech->get($page);
-  my $image = $mech->find_image( url_regex => qr{flpics.*_720\.jpg} );
-  if (!$image) {
-    print "$0: Oh no, Molly! Error on " . $page->url() . "\n";
-    return;
-  }
-  my $name = basename($image->url());
-
-  # Don't download images we've already grabbed.
-  # TODO: Extend this so we don't download pages/threads we've already grabbed, either.
-  unless ( -f "$dir/fetlife/pictures/$name" ) {
-    getstore($image->url(), "$dir/fetlife/pictures/$name");
-  }
-
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
 
-  my $picture = $tree->look_down( id => "picture" );
-  my $pic_img = $picture->find_by_tag_name( 'img' );
-  $pic_img    = \$pic_img->attr( 'src', $name );
+  my @pic_css = $tree->find_by_tag_name('style')->content_list();
+  my @pic_src = ($pic_css[0] =~ /(https:\/\/flpics.*_720.jpg)/);
+  if (!@pic_src) {
+    print "$0: Oh no, Molly! Error on " . $page->url() . "\n";
+    return;
+  }
+  my $name = basename(@pic_src);
+
+  # Don't download images we've already grabbed.
+  # TODO: Extend this so we don't download pages/threads we've already grabbed, either.
+  unless ( -f "$dir/fetlife/pictures/$name" ) {
+    getstore($pic_src[0], "$dir/fetlife/pictures/$name");
+  }
+
+  my $picture = $tree->look_down( class => "main_pic" );
+  my $pic_img = HTML::Element->new( 'img', 'src' => $name, 'alt' => "" );
+  $picture->insert_element($pic_img);
 
   open(DATA, "> $dir/fetlife/pictures/$name.html") or die "Can't write $name.html: $!";
   print DATA "<!-- FetLife Exporter Source URL: " . $page->url_abs() . " -->", "\n\n";
