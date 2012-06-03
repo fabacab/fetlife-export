@@ -532,7 +532,12 @@ sub getImage {
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
 
-  my @pic_css = $tree->find_by_tag_name('style')->content_list();
+  my $x = $tree->find_by_tag_name('style');
+  if (!$x) {
+    print "$0: Oh no, Molly! Error finding CSS on " . $page->url() . "\n";
+    return;
+  }
+  my @pic_css = $x->content_list();
   my @pic_src = ($pic_css[0] =~ /(https:\/\/flpics.*_720.jpg)/);
   if (!@pic_src) {
     print "$0: Oh no, Molly! Error on " . $page->url() . "\n";
