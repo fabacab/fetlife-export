@@ -158,7 +158,7 @@ if ($disallow_robots && is_dir($export_dir)) {
     }
 }
 ?>
-    <p>Done exporting user ID <?php print $id;?>. Found:</p>
+    <p>Done exporting user ID <?php printHTMLSafe($id);?>. Found:</p>
     <ul>
         <li><?php printHTMLSafe($num_conversations);?> conversations,</li>
         <li><?php printHTMLSafe($num_wall_to_walls);?> wall-to-walls,</li>
