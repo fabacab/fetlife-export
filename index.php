@@ -73,6 +73,21 @@ if (!file_exists(FLEXPORT_ROBOTS_TXT)) {
         <input type="submit" />
     </form>
 <?php
+// Show google a directory listing so it can find exports.
+if (is_google()) { ?>
+    <p>Exported directories on this server:</p>
+<?php
+    $globbed_dirs = glob("*-20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]", GLOB_ONLYDIR);
+    if ($globbed_dirs) {
+        print '<ul id="exported-directories">';
+        foreach ($globbed_dirs as $globbed_dir_name) {
+?>
+        <li><a href="<?php printHTMLSafe($globbed_dir_name);?>/"><?php printHTMLSafe($globbed_dir_name);?></a></li>
+<?php
+        }
+        print '</ul>';
+    }
+}
 
 if (empty($username) || empty($password)) {
     die("</body></html><!-- No username or password found. -->");
@@ -185,5 +200,13 @@ function disallowRobots ($dir) {
     $ret = fwrite($fh, "Disallow: $dir/\n");
     fclose($fh);
     return $ret;
+}
+
+function is_google () {
+    if (strpos($_SERVER['HTTP_USER_AGENT'], 'Googlebot')) {
+        return true;
+    } else {
+        return false;
+    }
 }
 ?>
