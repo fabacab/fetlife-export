@@ -181,7 +181,7 @@ if ($disallow_robots && is_dir($export_dir)) {
     </form>
 </body>
 </html>
-<?
+<?php
 function printHTMLSafe ($str) {
     print htmlentities($str, ENT_QUOTES, 'UTF-8');
 }
