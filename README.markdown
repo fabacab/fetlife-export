@@ -20,13 +20,14 @@ Installing from source is the most reliable way to ensure everything is function
 
 ### Installing required CPAN Modules
 
-Most systems will have the modules you need. However, if you experience errors running fetlife-export.pl, you may also want to install all the required components yourself. To do this, run the following commands after you’ve installed your Perl:
+Most systems will have the modules you need. However, if you experience errors running `fetlife-export.pl`, you may also want to install all the required components yourself. To do this, run the following commands after you’ve installed your Perl:
 
     cpan App::cpanminus
     cpanm WWW::Mechanize
     cpanm HTML::TreeBuilder
     cpanm String::Escape
     cpanm Unicode::Escape
+    cpanm LWP::Protocol::socks # Optional. Only needed if you'll use a SOCKS proxy.
 
 ### Configure the tool
 
@@ -52,6 +53,11 @@ Obviously, replace `username` with the username you’d like to export. You’ll
     Downloading 9 statuses...
     Downloading 2 pictures...
     Downloading 1 posts...
+
+You can optionally direct `fetlife-export.pl` to make requests through a proxy, such as [Privoxy](http://privoxy.org/) or [Tor](https://torproject.org/).
+
+    ./fetlife-export.pl --proxy=http://example.proxy.com:8080 fetfails # Use an open HTTP proxy.
+    ./fetlife-export.pl --proxy=socks://localhost:9050 fetfails # Use a local SOCKS proxy, like Tor.
 
 The Web portion of the suite is mostly a simple wrapper around this command-line tool that provides an HTML interface to its options.
 

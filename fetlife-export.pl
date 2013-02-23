@@ -9,10 +9,17 @@ use File::Path;
 use HTML::TreeBuilder;
 use String::Escape;
 use Unicode::Escape;
+use Getopt::Long;
 
 $|++;
 
 my $mech = new WWW::Mechanize( stack_depth => 0 ); # No need for history, save memory!
+
+die "Failed parsing options." unless GetOptions(
+    'proxy=s' => sub {
+        $mech->proxy(['http', 'https'], $_[1]) # Pass the option value as the proxy value.
+    } );
+
 my $username = shift or &usage;
 my $dir = shift || ".";
 print "Password: ";
@@ -588,7 +595,7 @@ sub login {
 }
 
 sub usage {
-  print "$0 <username> [<directory>]\n";
+  print "$0 [--proxy=URL] <username> [<directory>]\n";
   exit 1;
 }
 
