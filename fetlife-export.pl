@@ -97,6 +97,10 @@ sub getMessages {
   my $page = shift;
   my $tree;
   $mech->get($page);
+  if (!$mech->success()) {
+    print "$0: Error GETing $page";
+    return;
+  }
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
@@ -159,6 +163,10 @@ sub getWallToWall {
   my $tree;
 
   $mech->get($page);
+  if (!$mech->success()) {
+    print "$0: Error GETing $page";
+    return;
+  }
 
   my $name = $mech->title();
 
@@ -386,6 +394,10 @@ sub getGroupThread {
 
   # Grab the first page of the group thread.
   $mech->get($page);
+  if (!$mech->success()) {
+    print "$0: Error GETing $page";
+    return;
+  }
 
   # Download the first page.
   $tree = HTML::TreeBuilder->new();
@@ -470,6 +482,10 @@ sub getPost {
   my $page = shift;
   my $tree;
   $mech->get($page);
+  if (!$mech->success()) {
+    print "$0: Error GETing $page";
+    return;
+  }
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
@@ -532,6 +548,10 @@ sub getImage {
   my $page = shift;
   my $tree;
   $mech->get($page);
+  if (!$mech->success()) {
+    print "$0: Error GETing $page";
+    return;
+  }
   $tree = HTML::TreeBuilder->new();
   $tree->ignore_unknown(0);
   $tree->parse($mech->content());
