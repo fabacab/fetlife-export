@@ -24,8 +24,8 @@ if ($username && (int)$_REQUEST['download_archive']) {
     flush();
 }
 if ($username && $password && (int)$_REQUEST['delete_archive']) {
-    $fetlife = new FetLife($username, $password);
-    if ($fetlife->isSignedIn()) {
+    $fetlife = new FetLifeUser($username, $password);
+    if ($fetlife->logIn()) {
         // If a user wants to delete their archive from this server, delete ALL archives.
         exec(escapeshellcmd('rm -rf ' . escapeshellarg(substr($export_dir, 0, -11))) . '*', $output);
         exec(escapeshellcmd('rm -f ' . escapeshellarg("$zip_dir.zip")), $output);
