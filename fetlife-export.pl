@@ -22,6 +22,7 @@ die "Failed parsing options." unless GetOptions(
 
 my $username = shift or &usage;
 my $dir = shift || ".";
+my $target = shift;
 print "Password: ";
 ReadMode('noecho');
 my $password = ReadLine 0;
@@ -31,12 +32,18 @@ print "\n";
 
 &login($username, $password);
 my $id = &getId();
+if (defined $target) {
+    $id = $target;
+}
 print "userID: $id\n";
 
 mkpath("$dir/fetlife");
 
 &downloadProfile();
-&downloadConversations();
+# Only download conversations when the export target is the logged in user.
+if (not defined $target) {
+    &downloadConversations();
+}
 &downloadWall();
 &collectLinksInActivityFeed();
 
