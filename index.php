@@ -167,7 +167,7 @@ if ($disallow_robots && is_dir($export_dir)) {
         <li><?php printHTMLSafe($num_writings);?> writings,</li>
         <li><?php printHTMLSafe($num_group_threads);?> group threads.</li>
     </ul>
-    <p><a href="<?php printHTMLSafe($export_dir);?>/fetlife/">Browse <?php printHTMLSafe($username);?></a>. Or:</p>
+    <p><a href="<?php printHTMLSafe($export_dir);?>/fetlife/" target="_blank">Browse <?php printHTMLSafe($username);?></a>. Or:</p>
     <form action="<?php print $_SERVER['PHP_SELF']?>" method="post">
         <input type="hidden" name="username" id="download_username" value="<?php printHTMLSafe($username);?>" />
         <input type="hidden" name="password" id="download_password" value="<?php printHTMLSafe($password);?>" />
