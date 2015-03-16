@@ -61,6 +61,12 @@ You can optionally direct `fetlife-export.pl` to make requests through a proxy, 
 
 The Web portion of the suite is mostly a simple wrapper around this command-line tool that provides an HTML interface to its options.
 
+Additional command line options allow you to set an output directory as well as declaring an alternate export target other than the logged-in user. For example, to log in to FetLife as `fetfails` but to archive the activity of the FetLife user whose ID is `1` (`JohnBaku`) in a directory named `my-archive-folder`, invoke `fetlife-export.pl` as follows:
+
+    ./fetlife-export.pl fetfails my-archive-folder 1
+
+(This works because `JohnBaku`'s FetLife user ID number is `1`. The FetLife user ID of a given user is the numeric trailing part of their FetLife profile URL.)
+
 ### Set options
 
 Default options are provided in several files. To use them, simply run the following commands on your web server:
