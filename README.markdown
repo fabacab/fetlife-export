@@ -34,11 +34,17 @@ Most systems will have the modules you need. However, if you experience errors r
 * Edit the shebang line in fetlife-export.pl to point to the perl you want to use.
 * Make sure the `fetlife-export.pl` script is executable by running `chmod u+x fetlife-export.pl`.
 
-At this point, you can use the tool from a command line by invoking it as follows:
+## Using
+
+Once installed, you can use the tool from a command line by invoking it as follows:
 
     ./fetlife-export.pl username
 
-Obviously, replace `username` with the username you’d like to export. You’ll be prompted for a password. If you supply a valid password, running the program will give you some output that looks something like the following example:
+Obviously, replace `username` with your username. If your username begins with a hyphen (`-`), preface your username with two dashes and a space (`-- `). For instance, if your username is `-username`, then invoke the tool with a command as follows:
+
+    ./fetlife-export.pl -- -username
+
+You’ll be prompted for a password. If you supply a valid password, running the program will give you some output that looks something like the following example:
 
     $ ./fetlife-export.pl fetfails
     Password: 
@@ -61,19 +67,19 @@ You can optionally direct `fetlife-export.pl` to make requests through a proxy, 
 
 The Web portion of the suite is mostly a simple wrapper around this command-line tool that provides an HTML interface to its options.
 
-Additional command line options allow you to set an output directory as well as declaring an alternate export target other than the logged-in user. For example, to log in to FetLife as `fetfails` but to archive the activity of the FetLife user whose ID is `1` (`JohnBaku`) in a directory named `my-archive-folder`, invoke `fetlife-export.pl` as follows:
+Additional command line arguments allow you to set an output directory as well as declaring an alternate export target (a user account to export other than your own). For example, to log in to FetLife as `fetfails` but to archive the activity of the FetLife user whose ID is `1` (`JohnBaku`) in a directory named `my-archive-folder`, invoke `fetlife-export.pl` as follows:
 
     ./fetlife-export.pl fetfails my-archive-folder 1
 
-(This works because `JohnBaku`'s FetLife user ID number is `1`. The FetLife user ID of a given user is the numeric trailing part of their FetLife profile URL.)
+(This works because `JohnBaku`'s FetLife user ID number is `1`. To find a FetLife user ID, look at the URL of their FetLife profile URL. The trailing numeric part of their profile URL is their user ID number.)
 
-### Set options
+## Configuring the optional Web utility
 
 Default options are provided in several files. To use them, simply run the following commands on your web server:
 
     cp htaccess-default .htaccess
 
-## Troubleshooting
+### Troubleshooting
 
 If you’re running PHP as a CGI or FastCGI, such as by using `mod_fcgi`, you may begin to frequently experience an “Internal Server Error” if a user with a large FetLife history attempts an export. This may appear in your Apache error log as “Premature end of script headers.” To resolve this, try setting the various timeouts, such as the [FcgidIOTimeout directive](https://httpd.apache.org/mod_fcgid/mod/mod_fcgid.html#fcgidiotimeout "Apache manual page for FcgidIOTimeout directive."), to high values in your server config:
 
