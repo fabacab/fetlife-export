@@ -28,7 +28,7 @@ if ($username && $password && (int)$_REQUEST['delete_archive']) {
     if ($fetlife->logIn()) {
         // If a user wants to delete their archive from this server, delete ALL archives.
         exec(escapeshellcmd('rm -rf ' . escapeshellarg(substr($export_dir, 0, -11))) . '*', $output);
-        exec(escapeshellcmd('rm -f ' . escapeshellarg("$zip_dir.zip")), $output);
+        exec(escayepeshellcmd('rm -f ' . escapeshellarg("$zip_dir.zip")), $output);
     }
     header("Location: {$SERVER_['PHP_SELF']}");
     exit(0);
